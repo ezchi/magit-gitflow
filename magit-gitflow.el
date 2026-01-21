@@ -65,30 +65,29 @@
 
     ("Initialization/setup"
      ["Initialize defaults" magit-gitflow-init
-      :help "Initialize GitFlow in the current repository"]
+       :help "Initialize GitFlow in the current repository"]
      ["Set feature prefix" magit-gitflow-init-feature]
+     ["Set bugfix prefix" magit-gitflow-init-bugfix]
      ["Set release prefix" magit-gitflow-init-release]
      ["Set hotfix prefix" magit-gitflow-init-hotfix]
      ["Set support prefix" magit-gitflow-init-support]
      ["Set versiontag prefix" magit-gitflow-init-versiontag])
 
     ("Feature"
-     ["Start" magit-gitflow-feature-start-popup]
-     ["Finish" magit-gitflow-feature-finish-popup]
-     ["Publish" magit-gitflow-feature-publish]
-     ["Delete" magit-gitflow-feature-delete-popup]
-     ["Track" magit-gitflow-feature-track]
-     ["Diff" magit-gitflow-feature-diff]
-     ["Rebase" magit-gitflow-feature-rebase-popup])
+      ["Start" magit-gitflow-feature-start-popup]
+      ["Finish" magit-gitflow-feature-finish-popup]
+      ["Publish" magit-gitflow-feature-publish]
+      ["Delete" magit-gitflow-feature-delete-popup]
+      ["Track" magit-gitflow-feature-track]
+      ["Rebase" magit-gitflow-feature-rebase-popup])
 
     ("Bugfix"
-     ["Start" magit-gitflow-bugfix-start-popup]
-     ["Finish" magit-gitflow-bugfix-finish-popup]
-     ["Publish" magit-gitflow-bugfix-publish]
-     ["Delete" magit-gitflow-bugfix-delete-popup]
-     ["Track" magit-gitflow-bugfix-track]
-     ["Diff" magit-gitflow-bugfix-diff]
-     ["Rebase" magit-gitflow-bugfix-rebase-popup])
+      ["Start" magit-gitflow-bugfix-start-popup]
+      ["Finish" magit-gitflow-bugfix-finish-popup]
+      ["Publish" magit-gitflow-bugfix-publish]
+      ["Delete" magit-gitflow-bugfix-delete-popup]
+      ["Track" magit-gitflow-bugfix-track]
+      ["Rebase" magit-gitflow-bugfix-rebase-popup])
 
     ("Release"
      ["Start" magit-gitflow-release-start-popup]
@@ -150,7 +149,6 @@
              (?p "Publish"  magit-gitflow-feature-publish)
              (?d "Delete"   magit-gitflow-feature-delete-popup)
              (?t "Track"    magit-gitflow-feature-track)
-             (?D "Diff"     magit-gitflow-feature-diff)
              (?r "Rebase"   magit-gitflow-feature-rebase-popup)))
 
 (magit-define-popup magit-gitflow-feature-start-popup
@@ -201,7 +199,6 @@
              (?p "Publish"  magit-gitflow-bugfix-publish)
              (?d "Delete"   magit-gitflow-bugfix-delete-popup)
              (?t "Track"    magit-gitflow-bugfix-track)
-             (?D "Diff"     magit-gitflow-bugfix-diff)
              (?r "Rebase"   magit-gitflow-bugfix-rebase-popup)))
 
 (magit-define-popup magit-gitflow-bugfix-start-popup
@@ -356,7 +353,7 @@
 The new function will be called magit-run-gitflow-CMD."
   (let ((defun-name (intern (format "magit-run-gitflow-%s" cmd)))
         (version-prompt (format "%s name" (upcase-initials cmd)))
-        (config-key (format "prefix.%s" cmd)))
+        (config-key (format "branch.%s.prefix" cmd)))
 
     `(defun ,defun-name (args)
        (let* ((prefix (magit-gitflow-get-config-key ,config-key))
@@ -402,7 +399,7 @@ The new function will be called magit-gitflow-BRANCH-CMD."
   (magit-run-gitflow "init" "-d" magit-current-popup-args))
 
 (defun magit-gitflow-init-prefix (key prompt)
-  (let* ((config-key (format "gitflow.prefix.%s" key))
+  (let* ((config-key (format "gitflow.branch.%s.prefix" key))
          (default-prefix (or (magit-get config-key) "")))
     (magit-set
      (read-string prompt default-prefix) config-key)))
@@ -429,7 +426,10 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-init-versiontag ()
   (interactive)
-  (magit-gitflow-init-prefix "versiontag" "Version tag prefix: "))
+  (let* ((branch-type (completing-read "Branch type: " '("feature" "release" "hotfix" "support") nil t))
+         (config-key (format "gitflow.branch.%s.tagprefix" branch-type))
+         (default-prefix (or (magit-get config-key) "")))
+    (magit-set (read-string (format "%s tag prefix: " branch-type) default-prefix) config-key)))
 
 
 ;;
@@ -445,25 +445,11 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-feature-rebase ()
   (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.feature"))
-         (current-branch (magit-get-current-branch))
-         (args (append '("feature" "rebase") magit-current-popup-args (list (string-remove-prefix prefix current-branch)))))
-
-    (when (string-prefix-p prefix current-branch)
-      (magit-run-git-with-editor "flow" args))))
-
-(defun magit-gitflow-feature-diff ()
-  (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.feature"))
-         (current-branch (magit-get-current-branch))
-         (base (magit-get (format "gitflow.branch.%s.base" current-branch))))
-
-    (when (and (string-prefix-p prefix current-branch) base)
-      (magit-diff base current-branch))))
+  (magit-run-gitflow "rebase" magit-current-popup-args))
 
 (defun magit-gitflow-feature-track ()
   (interactive)
-  (let ((prefix (magit-gitflow-get-config-key "prefix.feature")))
+  (let ((prefix (magit-gitflow-get-config-key "branch.feature.prefix")))
     (magit-run-gitflow "feature" "track"
                        (string-remove-prefix prefix (magit-read-remote-branch "Feature" "origin")))))
 
@@ -481,28 +467,17 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-bugfix-rebase ()
   (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.bugfix"))
-         (current-branch (magit-get-current-branch))
-         (args (append '("bugfix" "rebase") magit-current-popup-args (list (string-remove-prefix prefix current-branch)))))
-
-    (when (string-prefix-p prefix current-branch)
-      (magit-run-git-with-editor "flow" args))))
-
-(defun magit-gitflow-bugfix-diff ()
-  (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.bugfix"))
-         (current-branch (magit-get-current-branch))
-         (base (magit-get (format "gitflow.branch.%s.base" current-branch))))
-
-    (when (and (string-prefix-p prefix current-branch) base)
-      (magit-diff base current-branch))))
+  (magit-run-gitflow "rebase" magit-current-popup-args))
 
 (defun magit-gitflow-bugfix-track ()
   (interactive)
-  (let ((prefix (magit-gitflow-get-config-key "prefix.bugfix")))
+  (let ((prefix (magit-gitflow-get-config-key "branch.bugfix.prefix")))
     (magit-run-gitflow "bugfix" "track"
-                       (string-remove-prefix prefix (magit-read-remote-branch "Bugfix" "origin")))))
+                       (string-remove-prefix prefix (magit-read-remote-branch "Bugfix" "origin"))))
 
+
+;;
+;; git flow RELEASE
 ;;
 ;; git flow RELEASE
 ;;
@@ -512,12 +487,12 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-release-finish ()
   (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.release"))
-        (current-branch (magit-get-current-branch))
-        (current-release (if (string-prefix-p prefix current-branch)
-                             (substring current-branch (length prefix))
-                           ""))
-        (args (append '("release" "finish") magit-current-popup-args (list (read-string "Release name: " current-release)))))
+  (let* ((prefix (magit-gitflow-get-config-key "branch.release.prefix"))
+         (current-branch (magit-get-current-branch))
+         (current-release (if (string-prefix-p prefix current-branch)
+                              (substring current-branch (length prefix))
+                            ""))
+         (args (append '("release" "finish") magit-current-popup-args (list (read-string "Release name: " current-release)))))
     (magit-run-git-with-editor "flow" args)))
 
 (define-magit-gitflow-branch-cmd "release" "publish")
@@ -525,7 +500,7 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-release-track ()
   (interactive)
-  (let ((prefix (magit-gitflow-get-config-key "prefix.release")))
+  (let ((prefix (magit-gitflow-get-config-key "branch.release.prefix")))
     (magit-run-gitflow "release" "track"
                        (string-remove-prefix prefix (magit-read-remote-branch "Release" "origin")))))
 
@@ -539,12 +514,12 @@ The new function will be called magit-gitflow-BRANCH-CMD."
 
 (defun magit-gitflow-hotfix-finish ()
   (interactive)
-  (let* ((prefix (magit-gitflow-get-config-key "prefix.hotfix"))
-         (current-branch (magit-get-current-branch))
-         (current-hotfix (if (string-prefix-p prefix current-branch)
-                              (substring current-branch (length prefix))
-                            ""))
-         (args (append '("hotfix" "finish") magit-current-popup-args (list (read-string "Hotfix name: " current-hotfix)))))
+  (let* ((prefix (magit-gitflow-get-config-key "branch.hotfix.prefix"))
+          (current-branch (magit-get-current-branch))
+          (current-hotfix (if (string-prefix-p prefix current-branch)
+                               (substring current-branch (length prefix))
+                             ""))
+          (args (append '("hotfix" "finish") magit-current-popup-args (list (read-string "Hotfix name: " current-hotfix)))))
     (magit-run-git-with-editor "flow" args)))
 
 (define-magit-gitflow-branch-cmd "hotfix" "publish")
