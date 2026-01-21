@@ -134,8 +134,7 @@
              (?r "Release prefix"      magit-gitflow-init-release)
              (?h "Hotfix prefix"       magit-gitflow-init-hotfix)
              (?s "Support prefix"      magit-gitflow-init-support)
-             (?v "Version tag prefix"  magit-gitflow-init-versiontag))
-  :switches '((?f "Force reinitialization" "--force")))
+             (?v "Version tag prefix"  magit-gitflow-init-versiontag)))
 
 ;;
 ;; git flow FEATURE
@@ -473,7 +472,7 @@ The new function will be called magit-gitflow-BRANCH-CMD."
   (interactive)
   (let ((prefix (magit-gitflow-get-config-key "branch.bugfix.prefix")))
     (magit-run-gitflow "bugfix" "track"
-                       (string-remove-prefix prefix (magit-read-remote-branch "Bugfix" "origin"))))
+                       (string-remove-prefix prefix (magit-read-remote-branch "Bugfix" "origin")))))
 
 
 ;;
