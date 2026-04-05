@@ -6,6 +6,7 @@
 ;; Keywords: vc tools
 ;; URL: https://github.com/jtatarik/magit-gitflow
 ;; Package: magit-gitflow
+;; Version: 3.1.0
 ;; Package-Requires: ((magit "2.1.0") (magit-popup "2.2.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
