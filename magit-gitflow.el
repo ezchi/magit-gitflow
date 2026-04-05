@@ -129,12 +129,13 @@
   "Popup console for GitFlow 'init' command."
   'magit-gitflow-popup
   :actions '((?i "Initialize defaults" magit-gitflow-init)
-             (?f "Feature prefix"      magit-gitflow-init-feature)
+             (?F "Feature prefix"      magit-gitflow-init-feature)
              (?b "Bugfix prefix"       magit-gitflow-init-bugfix)
              (?r "Release prefix"      magit-gitflow-init-release)
              (?h "Hotfix prefix"       magit-gitflow-init-hotfix)
              (?s "Support prefix"      magit-gitflow-init-support)
-             (?v "Version tag prefix"  magit-gitflow-init-versiontag)))
+             (?v "Version tag prefix"  magit-gitflow-init-versiontag))
+  :switches '((?f "Force" "--force")))
 
 ;;
 ;; git flow FEATURE
